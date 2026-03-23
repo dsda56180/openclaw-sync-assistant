@@ -5,6 +5,32 @@
   "description": "OpenClaw Sync Assistant Plugin",
   "configSchema": {
     "type": "object",
-    "properties": {}
+    "properties": {
+      "syncMethod": {
+        "type": "string",
+        "enum": ["p2p", "github"],
+        "description": "同步方式: 点对点(P2P) 或 GitHub"
+      },
+      "syncMode": {
+        "type": "string",
+        "enum": ["centralized", "decentralized"],
+        "description": "同步模式: 中心模式(Centralized) 或 去中心模式(Decentralized)"
+      },
+      "syncSecret": {
+        "type": "string",
+        "description": "用于生成 P2P 发现 Topic 和加密数据的同步密钥"
+      },
+      "githubRepo": {
+        "type": "string",
+        "description": "用于同步的 GitHub 仓库地址"
+      },
+      "syncItems": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "要同步的内容 (如 Config, Auth, Workspace)"
+      }
+    }
   }
 }
