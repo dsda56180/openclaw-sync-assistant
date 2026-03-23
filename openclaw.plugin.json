@@ -1,0 +1,10 @@
+{
+  "id": "openclaw-sync-assistant",
+  "name": "openclaw-sync-assistant",
+  "version": "1.0.0",
+  "description": "OpenClaw Sync Assistant Plugin",
+  "configSchema": {
+    "type": "object",
+    "properties": {}
+  }
+}

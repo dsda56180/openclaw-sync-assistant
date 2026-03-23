@@ -10,6 +10,11 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  },
   "dependencies": {
     "@clack/prompts": "^1.1.0",
     "b4a": "^1.8.0",
