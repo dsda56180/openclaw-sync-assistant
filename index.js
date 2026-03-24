@@ -14,7 +14,10 @@ module.exports = {
    * @param {object} context - OpenClaw 提供的上下文对象，包含 api 等
    */
   async activate(context) {
-    console.log("✅ openclaw-sync-assistant 插件已激活！");
+    // 仅在明确启用 DEBUG 的情况下输出激活日志
+    if (process.env.DEBUG === 'openclaw:sync') {
+      console.log("✅ openclaw-sync-assistant 插件已激活！");
+    }
 
     // 如果 context 提供了注册命令的方法，我们注册 `sync setup` 命令
     if (
@@ -125,7 +128,7 @@ module.exports = {
           ),
         );
       });
-    } else {
+    } else if (process.env.DEBUG === 'openclaw:sync') {
       console.log(
         pc.yellow(
           "提示: 可以在配置文件中设置 syncMethod, syncMode, syncSecret 和 githubRepo 来启动同步。",

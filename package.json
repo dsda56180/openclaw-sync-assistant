@@ -1,6 +1,6 @@
 {
   "name": "openclaw-sync-assistant",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "An OpenClaw plugin for P2P file and data synchronization using Hyperswarm and Hyperdrive ecosystem.",
   "main": "index.js",
   "type": "commonjs",
