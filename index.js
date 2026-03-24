@@ -48,8 +48,13 @@ module.exports = {
       }
     }
 
-    // 如果未配置，则在安装/首次加载时触发引导向导
-    if (!hasConfigured) {
+    // 判断当前进程是否为 OpenClaw 的长期后台进程 (daemon)，而不是执行一次性命令 (如 plugins list/update)
+    // 通常 daemon 进程会有特殊的标志或不会立即退出。由于 OpenClaw 的架构，可以通过进程参数判断
+    const isDaemon =
+      process.argv.includes("daemon") || process.argv.includes("start");
+
+    // 如果未配置，并且当前是 daemon 启动，则触发引导向导
+    if (!hasConfigured && isDaemon) {
       isWizardRunning = true;
       try {
         await module.exports.runSetupWizard(context);
