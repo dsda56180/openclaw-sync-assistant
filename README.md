@@ -28,13 +28,15 @@
 由于 OpenClaw 目前仅支持通过本地路径或 NPM 仓库安装插件，你可以选择以下两种方式之一进行安装：
 
 **方式一：从 NPM 官方仓库安装（推荐）**
-如果你已经将插件发布到 NPM：
+本项目已发布至 NPM，你可以直接使用以下命令一键安装：
+
 ```bash
 openclaw plugins install openclaw-sync-assistant
 ```
 
 **方式二：通过 GitHub 源码本地安装**
 如果你希望使用最新源码，可以先克隆仓库，然后在本地目录进行安装：
+
 ```bash
 # 1. 克隆仓库到本地
 git clone https://github.com/dsda56180/openclaw-sync-assistant.git
