@@ -1,7 +1,7 @@
 {
   "id": "openclaw-sync-assistant",
   "name": "openclaw-sync-assistant",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "description": "OpenClaw Sync Assistant Plugin",
   "commands": [
     {

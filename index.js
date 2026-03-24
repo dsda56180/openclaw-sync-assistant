@@ -7,6 +7,12 @@ const {
   spinner,
 } = require("@clack/prompts");
 const pc = require("picocolors");
+const path = require("path");
+const os = require("os");
+const GitSyncService = require("./src/github-sync");
+
+let isWizardRunning = false;
+let gitSyncInstance = null;
 
 module.exports = {
   /**
@@ -18,25 +24,70 @@ module.exports = {
       console.log("✅ openclaw-sync-assistant 插件已激活！");
     }
 
+    // 防止在 OpenClaw 的某些生命周期中 activate 被并发/多次调用导致向导重复弹出
+    if (isWizardRunning) return;
+
     // 检查是否已经配置过
     let hasConfigured = false;
+    let syncMethod = null;
+    let githubRepo = null;
+    let syncMode = null;
+
     if (context.api && context.api.config && context.api.config.get) {
-      const currentMethod = await context.api.config.get(
+      syncMethod = await context.api.config.get(
         "openclaw-sync-assistant.syncMethod",
       );
-      if (currentMethod) {
+      githubRepo = await context.api.config.get(
+        "openclaw-sync-assistant.githubRepo",
+      );
+      syncMode = await context.api.config.get(
+        "openclaw-sync-assistant.syncMode",
+      );
+      if (syncMethod) {
         hasConfigured = true;
       }
     }
 
     // 如果未配置，则在安装/首次加载时触发引导向导
     if (!hasConfigured) {
-      await this.runSetupWizard(context);
+      isWizardRunning = true;
+      try {
+        await module.exports.runSetupWizard(context);
+        // 向导结束后重新获取最新配置
+        if (context.api && context.api.config && context.api.config.get) {
+          syncMethod = await context.api.config.get(
+            "openclaw-sync-assistant.syncMethod",
+          );
+          githubRepo = await context.api.config.get(
+            "openclaw-sync-assistant.githubRepo",
+          );
+          syncMode = await context.api.config.get(
+            "openclaw-sync-assistant.syncMode",
+          );
+        }
+      } finally {
+        isWizardRunning = false;
+      }
     }
 
-    // 根据模式启动后台服务的逻辑占位
-    // if (config.syncMethod === 'p2p') startP2PService(context);
-    // else if (config.syncMethod === 'github') startGitSyncService(context);
+    // 启动实际的同步服务
+    if (syncMethod === "github" && githubRepo) {
+      const openclawDir = path.join(os.homedir(), ".openclaw");
+      // 这里我们为了安全，默认只同步 config 和 workspace 等子目录，但为了简单起见，我们在 openclawDir 下创建一个 sync 专用文件夹
+      // 或者直接同步整个 .openclaw 目录（需要在 github-sync.js 中排除一些不必要的缓存）
+      // 推荐做法：在 .openclaw/sync-data 目录做软链接或者单独管理
+      const syncDir = path.join(openclawDir, "sync-data");
+
+      gitSyncInstance = new GitSyncService(
+        syncDir,
+        githubRepo,
+        syncMode,
+        process.env.DEBUG === "openclaw:sync",
+      );
+      await gitSyncInstance.init();
+    } else if (syncMethod === "p2p") {
+      console.log("[OpenClaw Sync] P2P 模式尚未在此版本中完全实现核心逻辑。");
+    }
   },
 
   /**
@@ -160,9 +211,13 @@ module.exports = {
   },
 
   /**
-   * 插件卸载时的清理函数
+   * 插件卸载或停用时的清理函数
    */
   deactivate() {
-    console.log("❌ openclaw-sync-assistant 插件已卸载。");
+    console.log("❌ openclaw-sync-assistant 插件已卸载/停用。");
+    if (gitSyncInstance) {
+      gitSyncInstance.stop();
+      gitSyncInstance = null;
+    }
   },
 };
