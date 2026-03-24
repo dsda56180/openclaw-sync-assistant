@@ -148,7 +148,15 @@ module.exports = {
     } else if (syncMethod === "github") {
       githubRepo = await text({
         message: "请输入用于同步的 GitHub 仓库地址:",
-        placeholder: "例如: https://github.com/... (直接回车可跳过)",
+        placeholder: "例如: https://github.com/user/repo.git (直接回车可跳过)",
+        validate(value) {
+          if (!value || value.trim() === "") return;
+          const githubRegex =
+            /^(https:\/\/github\.com\/|git@github\.com:)[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+(\.git)?$/;
+          if (!githubRegex.test(value.trim())) {
+            return "请输入有效的 GitHub 仓库地址，例如: https://github.com/user/repo.git";
+          }
+        },
       });
       if (typeof githubRepo === "symbol") return;
     }
