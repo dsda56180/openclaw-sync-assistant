@@ -1,8 +1,15 @@
 {
   "id": "openclaw-sync-assistant",
   "name": "openclaw-sync-assistant",
-  "version": "0.0.1",
+  "version": "0.0.8",
   "description": "OpenClaw Sync Assistant Plugin",
+  "commands": [
+    {
+      "id": "sync.setup",
+      "title": "OpenClaw Sync: Setup",
+      "description": "Initialize OpenClaw Sync Assistant configuration"
+    }
+  ],
   "configSchema": {
     "type": "object",
     "properties": {
