@@ -48,17 +48,12 @@ module.exports = {
       }
     }
 
-    // 判断当前进程是否为 OpenClaw 的长期后台进程 (daemon)，而不是执行一次性命令 (如 plugins list/update)
-    // 之前使用 process.argv 判断不够准确，有些环境下（如全局安装的 openclaw 命令）真正的参数可能被隐藏或包装
-    // 更稳妥的做法是检查环境变量，通常 daemon 启动时会带有特定的环境或特征
-    // 但如果环境变量不可靠，我们可以检查 process.argv 里面是否*不包含* 'plugins'
-    // 因为执行 'openclaw plugins xxx' 时，'plugins' 一定在参数列表中
-    const isPluginCommand = process.argv.some(
-      (arg) => arg.includes("plugins") || arg.includes("plugin"),
-    );
+    const serviceMarker = process.env.OPENCLAW_SERVICE_MARKER;
+    const serviceKind = (process.env.OPENCLAW_SERVICE_KIND || "").toLowerCase();
+    const isGatewayService =
+      Boolean(serviceMarker) && serviceKind.includes("gateway");
 
-    // 只有当不是执行插件管理命令，且未配置时，才触发引导向导
-    if (!hasConfigured && !isPluginCommand) {
+    if (!hasConfigured && isGatewayService) {
       isWizardRunning = true;
       try {
         await module.exports.runSetupWizard(context);
