@@ -1,13 +1,38 @@
 {
   "id": "openclaw-sync-assistant",
   "name": "openclaw-sync-assistant",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "OpenClaw Sync Assistant Plugin",
   "commands": [
     {
       "id": "sync.setup",
       "title": "OpenClaw Sync: Setup",
       "description": "Initialize OpenClaw Sync Assistant configuration"
+    },
+    {
+      "id": "sync.status",
+      "title": "OpenClaw Sync: Status",
+      "description": "Show the current sync service status"
+    },
+    {
+      "id": "sync.sync-now",
+      "title": "OpenClaw Sync: Sync Now",
+      "description": "Trigger one immediate sync run"
+    },
+    {
+      "id": "sync.conflicts",
+      "title": "OpenClaw Sync: Conflicts",
+      "description": "List current sync conflict files"
+    },
+    {
+      "id": "sync.resolve-conflicts",
+      "title": "OpenClaw Sync: Resolve Conflicts",
+      "description": "Resolve current sync conflict files"
+    },
+    {
+      "id": "sync.verify-migration",
+      "title": "OpenClaw Sync: Verify Migration",
+      "description": "Verify whether current sync coverage is enough for migration"
     }
   ],
   "configSchema": {
@@ -36,7 +61,7 @@
         "items": {
           "type": "string"
         },
-        "description": "要同步的内容 (如 Config, Auth, Workspace)"
+        "description": "要同步的内容 (如 Config, Auth, Sessions, ChannelState, WorkspaceFiles)"
       }
     }
   }
