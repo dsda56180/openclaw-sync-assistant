@@ -6,10 +6,7 @@ const Hyperswarm = require("hyperswarm");
 const Localdrive = require("localdrive");
 const path = require("path");
 const { createHash } = require("crypto");
-const {
-  normalizeSyncItems,
-  resolveSyncEntries,
-} = require("./sync-items");
+const { normalizeSyncItems, resolveSyncEntries } = require("./sync-items");
 
 const PRESERVED_ENTRY_NAMES = new Set([".git"]);
 
@@ -23,10 +20,16 @@ function listDirectoryEntries(rootPath, { excludePreserved = false } = {}) {
     return entryNames;
   }
 
-  return entryNames.filter((entryName) => !PRESERVED_ENTRY_NAMES.has(entryName));
+  return entryNames.filter(
+    (entryName) => !PRESERVED_ENTRY_NAMES.has(entryName),
+  );
 }
 
-function mirrorDirectory(sourcePath, targetPath, { preserveTargetEntries = false } = {}) {
+function mirrorDirectory(
+  sourcePath,
+  targetPath,
+  { preserveTargetEntries = false } = {},
+) {
   if (fs.existsSync(targetPath) && !fs.statSync(targetPath).isDirectory()) {
     fs.rmSync(targetPath, { recursive: true, force: true });
   }
@@ -43,7 +46,10 @@ function mirrorDirectory(sourcePath, targetPath, { preserveTargetEntries = false
 
   for (const entryName of targetEntries) {
     if (!sourceEntrySet.has(entryName)) {
-      fs.rmSync(path.join(targetPath, entryName), { recursive: true, force: true });
+      fs.rmSync(path.join(targetPath, entryName), {
+        recursive: true,
+        force: true,
+      });
     }
   }
 
@@ -286,7 +292,9 @@ class P2PSyncService {
       await this.performSync(this.getModePolicy().startupSync);
       this.startWatching();
       this.startRemoteWatching();
-      this.log(`P2P 发现主题已启动: ${this.drive.discoveryKey.toString("hex")}`);
+      this.log(
+        `P2P 发现主题已启动: ${this.drive.discoveryKey.toString("hex")}`,
+      );
     } catch (err) {
       this.error("初始化失败:", err);
     }
@@ -534,7 +542,9 @@ class P2PSyncService {
               "local-conflict",
             );
             this.lastConflictAt =
-              this.lastConflictFiles.length > 0 ? new Date().toISOString() : null;
+              this.lastConflictFiles.length > 0
+                ? new Date().toISOString()
+                : null;
           }
 
           await this.syncDriveToStage();

@@ -2,10 +2,7 @@ const simpleGit = require("simple-git");
 const chokidar = require("chokidar");
 const fs = require("fs");
 const path = require("path");
-const {
-  normalizeSyncItems,
-  resolveSyncEntries,
-} = require("./sync-items");
+const { normalizeSyncItems, resolveSyncEntries } = require("./sync-items");
 
 const PRESERVED_ENTRY_NAMES = new Set([".git"]);
 
@@ -19,10 +16,16 @@ function listDirectoryEntries(rootPath, { excludePreserved = false } = {}) {
     return entryNames;
   }
 
-  return entryNames.filter((entryName) => !PRESERVED_ENTRY_NAMES.has(entryName));
+  return entryNames.filter(
+    (entryName) => !PRESERVED_ENTRY_NAMES.has(entryName),
+  );
 }
 
-function mirrorDirectory(sourcePath, targetPath, { preserveTargetEntries = false } = {}) {
+function mirrorDirectory(
+  sourcePath,
+  targetPath,
+  { preserveTargetEntries = false } = {},
+) {
   if (fs.existsSync(targetPath) && !fs.statSync(targetPath).isDirectory()) {
     fs.rmSync(targetPath, { recursive: true, force: true });
   }
@@ -39,7 +42,10 @@ function mirrorDirectory(sourcePath, targetPath, { preserveTargetEntries = false
 
   for (const entryName of targetEntries) {
     if (!sourceEntrySet.has(entryName)) {
-      fs.rmSync(path.join(targetPath, entryName), { recursive: true, force: true });
+      fs.rmSync(path.join(targetPath, entryName), {
+        recursive: true,
+        force: true,
+      });
     }
   }
 
@@ -87,7 +93,6 @@ class GitSyncService {
     this.lastConflictFiles = [];
     this.lastConflictAt = null;
     this.primaryBranch = "main";
-
   }
 
   static normalizeSyncItems(syncItems) {
@@ -217,7 +222,9 @@ class GitSyncService {
           await this.alignLocalRepoWithRemoteBranch();
         } else {
           this.log("拉取远程最新状态...");
-          await this.git.pull("origin", this.primaryBranch, { "--no-rebase": null });
+          await this.git.pull("origin", this.primaryBranch, {
+            "--no-rebase": null,
+          });
           await this.syncRepoToSources();
           this.log("✅ 拉取成功");
         }
@@ -273,7 +280,12 @@ class GitSyncService {
 
   async detectPrimaryBranch() {
     try {
-      const output = await this.git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
+      const output = await this.git.raw([
+        "ls-remote",
+        "--symref",
+        "origin",
+        "HEAD",
+      ]);
       const match = output.match(/ref:\s+refs\/heads\/([^\s]+)\s+HEAD/);
       if (match && match[1]) {
         this.primaryBranch = match[1];
@@ -285,7 +297,13 @@ class GitSyncService {
 
     for (const candidate of ["main", "master"]) {
       try {
-        await this.git.raw(["ls-remote", "--exit-code", "--heads", "origin", candidate]);
+        await this.git.raw([
+          "ls-remote",
+          "--exit-code",
+          "--heads",
+          "origin",
+          candidate,
+        ]);
         this.primaryBranch = candidate;
         return this.primaryBranch;
       } catch (error) {
@@ -336,7 +354,11 @@ class GitSyncService {
       return await this.remoteBranchExists();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (new RegExp(`couldn't find remote ref ${this.primaryBranch}`, "i").test(message)) {
+      if (
+        new RegExp(`couldn't find remote ref ${this.primaryBranch}`, "i").test(
+          message,
+        )
+      ) {
         return false;
       }
       throw error;
@@ -371,7 +393,11 @@ class GitSyncService {
       return;
     }
 
-    await this.git.checkout(["-B", this.primaryBranch, this.getRemoteBranchRef()]);
+    await this.git.checkout([
+      "-B",
+      this.primaryBranch,
+      this.getRemoteBranchRef(),
+    ]);
   }
 
   getWatchPaths() {
@@ -559,7 +585,9 @@ class GitSyncService {
       const hasRemoteBranch = await this.fetchRemoteBranch();
 
       if (hasRemoteBranch && !(await this.hasSharedHistoryWithRemote())) {
-        this.log(`检测到本地同步仓库与远端 ${this.primaryBranch} 分叉，重新对齐远端基线...`);
+        this.log(
+          `检测到本地同步仓库与远端 ${this.primaryBranch} 分叉，重新对齐远端基线...`,
+        );
         await this.alignLocalRepoWithRemoteBranch();
       }
 
@@ -568,7 +596,8 @@ class GitSyncService {
       const timestamp = new Date().toISOString().replace(/[:]/g, "-");
       const modePolicy = GitSyncService.getModePolicy(this.syncMode);
       const initialStatus = await this.git.status();
-      const localChangedFiles = GitSyncService.collectStatusFiles(initialStatus);
+      const localChangedFiles =
+        GitSyncService.collectStatusFiles(initialStatus);
       const hadLocalChanges = !initialStatus.isClean();
 
       if (hadLocalChanges) {
@@ -598,7 +627,9 @@ class GitSyncService {
               modePolicy.conflictLabel,
             );
             this.lastConflictAt =
-              this.lastConflictFiles.length > 0 ? new Date().toISOString() : null;
+              this.lastConflictFiles.length > 0
+                ? new Date().toISOString()
+                : null;
           }
 
           await this.git.merge([
@@ -618,7 +649,9 @@ class GitSyncService {
             );
 
             this.lastConflictAt =
-              this.lastConflictFiles.length > 0 ? new Date().toISOString() : null;
+              this.lastConflictFiles.length > 0
+                ? new Date().toISOString()
+                : null;
 
             if (this.lastConflictFiles.length > 0) {
               await this.commitAllChanges(
