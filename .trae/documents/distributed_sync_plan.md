@@ -1,105 +1,323 @@
 # 分布式数据同步项目 (OpenClaw Sync Assistant) 实施计划
 
-## 摘要 (Summary)
+## 1. 项目目标
 
-本项目旨在开发一个**开箱即用**的分布式数据同步扩展，中文名为 **“OpenClaw 同步助手”**，英文名为 **OpenClaw Sync Assistant**。
-该项目将在 `D:\ai_project\openclaw-sync-assistant` 下作为独立项目开发，并严格遵循 OpenClaw 的 **原生插件 (Native Plugin) 标准**。开发完成后将开源到 GitHub，用户完全可以通过 OpenClaw 的**官方插件命令直接安装和卸载**。底层引入基于 Node.js 的 **Holepunch (原 Hypercore Protocol)** 开源栈（`hyperswarm` + `hyperdrive`），自带 P2P 内网穿透与端到端加密，解决跨网同步痛点。
+本插件的最终目标不是单纯“同步几个目录”，而是让用户在不同 OpenClaw 实例、不同机器、不同网络环境之间切换时，依然获得接近同一环境的连续体验。
 
-## 极简安装与官方集成 (Official Installation & UX)
+按照 OpenClaw 迁移指南，理想的迁移结果应尽可能保留以下内容：
 
-### 1. 官方原生插件机制安装/卸载
+- Config：`openclaw.json` 与网关设置
+- Auth：API Key、OAuth Token、Credential Profiles
+- Sessions：会话历史与 Agent 状态
+- Channel state：如 WhatsApp、Telegram 等渠道登录态
+- Workspace files：`MEMORY.md`、`USER.md`、skills、prompts 等工作区文件
 
-为了满足“必须通过官方插件安装方法直接安装卸载”的要求，本项目将打包为标准 npm 包，并支持通过 GitHub 或 NPM 仓库一键安装：
+因此，本项目的目标应定义为：
 
-- **安装 (Installation)**：
+- 支持官方插件方式安装、启动、卸载
+- 自动识别当前 OpenClaw 状态目录
+- 为关键体验数据提供可配置同步
+- 在跨设备场景下提供状态可观测、冲突可处理、风险可预警
+- 最终支撑“迁移到新机器后无需重新 onboarding”这一体验目标
 
-  ```bash
-  # 从开源后的 GitHub 仓库直接安装
-  openclaw plugin install github:您的用户名/openclaw-sync-assistant
+## 2. 当前实现现状
 
-  # 或者从 npm 官方仓库安装 (若发布)
-  openclaw plugin install openclaw-sync-assistant
-  ```
+### 2.1 已完成能力
 
-- **卸载 (Uninstallation)**：
+当前仓库已经具备一套可运行的同步插件基础能力：
 
-  ```bash
-  openclaw plugin uninstall openclaw-sync-assistant
-  ```
+- 插件清单与配置 Schema 已完成，见 `openclaw.plugin.json`
+- 两种传输方式已实现：
+  - GitHub 仓库同步
+  - P2P 同步（Hyperswarm + Hyperdrive）
+- 已支持同步项：
+  - `Config`
+  - `Auth`
+  - `Workspace`
+- 已支持命令：
+  - `sync.setup`
+  - `sync.status`
+  - `sync.sync-now`
+  - `sync.conflicts`
+  - `sync.resolve-conflicts`
+- 已具备冲突扫描、预览、分组处理、逐文件确认
+- 已具备体验一致性状态评估：
+  - 已选同步项覆盖度
+  - 本地状态基线
+  - 同步副本基线
 
-### 2. 初始化与配置向导
+### 2.2 当前实现与目标的匹配度
 
-安装后，通过官方 CLI 扩展注册机制提供交互式配置：
+从“基础同步插件”角度看，当前实现已经比较完整。
 
-```bash
-$ openclaw sync setup
-? 请输入您的同步密钥 (Sync Secret, 用于生成 P2P 发现的 Topic 和加密数据): [********]
-? 请选择要同步的内容: [x] Config  [x] Auth  [ ] Sessions  [x] Workspace
-✔ 配置完成！同步助手后台服务已接管状态同步。
-```
+从“满足 OpenClaw 迁移目标”角度看，当前实现还不完善，只能认为完成了第一阶段。
 
-### 3. Skill 对话集成
+## 3. 需求覆盖评估
 
-内置 `skills/sync.md`，用户可直接与大模型对话：
+### 3.1 官方迁移目标覆盖矩阵
 
-- `@OpenClaw 我的公司电脑连上了吗？` -> Agent 调用内部接口查看连接状态。
+| 迁移目标 | 当前状态 | 说明 |
+| --- | --- | --- |
+| Config | 已支持 | `config` 目录已纳入同步项 |
+| Auth | 已支持 | `auth` 目录已纳入同步项 |
+| Sessions | 未支持 | 当前没有独立的 `Sessions` 同步项，也没有针对会话历史/Agent 状态的目录映射 |
+| Channel state | 未支持 | 未对 WhatsApp/Telegram 等渠道登录态建立显式同步模型 |
+| Workspace files | 部分支持 | 当前 `Workspace` 是目录级同步，但尚未明确覆盖 `MEMORY.md`、`USER.md`、skills、prompts 等细粒度对象 |
+| 官方迁移验证清单 | 未完整支持 | 仅有插件自身状态与冲突处理，缺少“迁移完成验证”专用检查项 |
 
-- `@OpenClaw 帮我处理一下配置冲突。` -> 辅助合并 `.conflict` 文件。
+### 3.2 结论
 
-## 拟议变更与独立建库 (Proposed Changes & Independent Repo)
+当前插件 **不能认定为已经完全满足 OpenClaw 内容迁移与跨机器体验一致性的最终需求**。
 
-项目在 `D:\ai_project\openclaw-sync-assistant` 下创建，但内部结构完全遵循 OpenClaw 插件规范：
+更准确的结论是：
 
-### 1. 独立项目初始化步骤
+- 已具备“同步引擎骨架”
+- 已具备“Config/Auth/Workspace 的基础同步能力”
+- 已具备“冲突处理与状态可观测”的初步实现
+- 尚未具备“覆盖 OpenClaw 官方迁移范围”的完整能力
 
-1. 在 `D:\ai_project` 下新建 `openclaw-sync-assistant`。
-2. `npm init -y` 并安装 P2P 核心依赖：`hyperswarm`, `hyperdrive`, `localdrive` 等。
-3. 初始化 Git，准备开源推送到 GitHub `main` 分支。
+## 4. 当前架构梳理
 
-### 2. 核心模块与官方插件结构
+### 4.1 现有模块
 
-- **`openclaw.plugin.json`**：OpenClaw 插件清单。声明 `id: "sync-assistant"`、技能路径、配置 Schema（如 `syncSecret`）。
+- `index.js`
+  - 插件入口
+  - 配置向导
+  - 命令路由
+  - 状态格式化
+  - 冲突扫描与解决
+- `src/github-sync.js`
+  - 基于 Git 的同步实现
+  - 本地变更监听
+  - push / pull / merge
+  - Git 冲突保留副本
+- `src/p2p-sync.js`
+  - 基于 Hyperswarm + Hyperdrive 的同步实现
+  - 本地与远端变更监听
+  - Drive 镜像同步
+  - P2P 冲突保留副本
+- `test.js`
+  - 当前能力的回归测试
 
-- **`package.json`**：声明入口点 `main: "dist/index.js"`，确保 OpenClaw 运行时可以正确加载。
+### 4.2 当前逻辑分层
 
-- **`src/index.ts`**：插件入口，必须导出一个 `export async function register(api: OpenClawPluginAPI)` 函数。在此处拦截生命周期：
-  - 注册 CLI 命令 `openclaw sync`。
+1. 插件层  
+   负责配置读取、命令入口、用户交互与状态输出
 
-  - 启动后台的 `hyperswarm` 守护进程，监听 `$OPENCLAW_STATE_DIR`。
+2. 传输层  
+   提供 GitHub 与 P2P 两种同步通道
 
-- **`src/p2p-network.ts`**：利用 `hyperswarm` 进行 DHT 穿透和对等节点发现。
+3. 同步编排层  
+   将选定同步项映射到本地目录与同步目录
 
-- **`src/drive-manager.ts`**：将 `~/.openclaw` 中的指定目录映射为 `localdrive`，与远端的 `hyperdrive` 建立双向镜像。
+4. 冲突治理层  
+   负责生成冲突副本、冲突预览、冲突确认、冲突清理/覆盖
 
-- **`src/conflict.ts`**：文件冲突时保留本地修改，远端重命名为 `.conflict.<timestamp>`。
+5. 状态观测层  
+   负责输出同步状态、体验一致性、基线完整度
 
-- **`skills/sync.md`**：官方技能描述文件。
+### 4.3 当前架构问题
 
-## 现有开源方案对比与本方案优化 (Reference & Optimization)
+- 同步对象模型过于粗粒度，只定义到 `Config/Auth/Workspace`
+- 没有显式建模 `Sessions` 与 `Channel state`
+- 没有“迁移验证”阶段，无法回答“迁移后是否真的可用”
+- 没有针对首次迁移、增量同步、恢复同步的不同流程区分
+- 缺少“本地 vs 同步副本”的变更方向判断与风险建议
 
-**社区现有参考方案**：`awesome-openclaw-skills` 中的 `/sync` 技能。
+## 5. 目标架构设计
 
-- **工作原理**：基于 `Tailscale + SSH + rsync`。
+### 5.1 目标分层
 
-- **致命缺点**：需要用户手动配置 VPN、配置 SSH 密钥、依赖系统级命令，**极难一键安装**，且在 Windows 上体验差。
+#### A. 同步对象模型层
 
-**本项目极致优化**：
-采用 **Hypercore / Hyperswarm / Hyperdrive** 栈全面替代：
+定义标准同步项，而不是只依赖目录名：
 
-- **无外部依赖 (Pure Node.js)**：不需要 Tailscale，不需要 SSH 密钥。所有逻辑打包在一个 NPM 插件内。
+- Config
+- Auth
+- Sessions
+- ChannelState
+- WorkspaceFiles
 
-- **自带 P2P 打洞 (NAT Traversal)**：利用 `hyperswarm` 自动穿透防火墙。
+每个同步项需要定义：
 
-- **完全符合官方插件生命周期**：随 OpenClaw 启动而启动，随 `openclaw plugin uninstall` 干净卸载，无需残留第三方守护进程。
+- 逻辑名称
+- 对应目录或文件集合
+- 是否敏感
+- 是否允许自动覆盖
+- 冲突策略
+- 验证规则
 
-## 假设与决策 (Assumptions & Decisions)
+#### B. 目录映射层
 
-1. **运行时接管**：插件将在 `register(api)` 阶段读取 OpenClaw 的上下文路径（`api.paths.stateDir` 等），确保同步的绝对路径完全动态适应当前运行的 OpenClaw 实例。
-2. **多写一致性决策**：采用“Last-Write-Wins (最后写入者赢) + 冲突文件留存”的策略，确保任何情况都不丢失本地数据。
+将 OpenClaw 状态目录映射为受控同步单元：
 
-## 验证步骤 (Verification Steps)
+- `config/`
+- `auth/`
+- `sessions/` 或对应历史目录
+- 渠道状态目录
+- 工作区核心文件与扩展目录
 
-1. **插件打包与安装验证**：在独立项目内运行构建后，使用 `openclaw plugin install /path/to/local/folder` 验证官方安装流程是否成功。
-2. **网络穿透测试**：在两台不同网络的机器上分别安装该插件，输入相同密钥，确认打洞成功。
-3. **OpenClaw 挂载与卸载测试**：运行 `openclaw plugin uninstall openclaw-sync-assistant`，确认相关进程优雅退出且配置清理干净。
-4. **开源发布**：确认代码无敏感信息，推送到您的 GitHub 仓库供社区通过 `openclaw plugin install github:...` 安装。
+#### C. 传输适配层
+
+保留现有两种实现：
+
+- GitHub Sync Adapter
+- P2P Sync Adapter
+
+并统一抽象能力：
+
+- 初始化
+- 单次同步
+- 拉取
+- 推送
+- 获取状态
+- 获取差异
+- 停止服务
+
+#### D. 冲突治理层
+
+在现有基础上继续增强：
+
+- 冲突对象归类
+- 敏感项高风险确认
+- 文本差异摘要
+- 恢复点与回滚指引
+
+#### E. 迁移验证层
+
+这是当前缺失但最关键的一层，用于验证跨机器体验是否恢复：
+
+- 网关是否正常启动
+- 会话是否存在
+- 渠道是否仍处于已登录状态
+- 工作区文件是否完整
+- 本地与同步副本是否覆盖所有关键对象
+
+## 6. 详细功能清单
+
+### 6.1 基础能力
+
+- 插件安装 / 卸载
+- 初始化配置向导
+- GitHub 同步
+- P2P 同步
+- 手动立即同步
+- 自动监听同步
+- 状态查看
+
+### 6.2 数据范围管理
+
+- 同步项选择
+- 同步项元数据定义
+- 同步项与路径映射
+- 敏感项标记
+- 同步项覆盖度评估
+
+### 6.3 冲突处理
+
+- 冲突文件扫描
+- 冲突列表展示
+- 作用域分组
+- 批量清理冲突副本
+- 覆盖原文件前逐文件确认
+- 预览模式
+- 元数据摘要
+
+### 6.4 体验一致性能力
+
+- 同步项覆盖度评估
+- 本地状态基线检查
+- 同步副本基线检查
+- 缺失项提示
+- 迁移完成验证
+- 切换风险提示
+
+### 6.5 未来必须补齐的能力
+
+- `Sessions` 同步项
+- `ChannelState` 同步项
+- `WorkspaceFiles` 细粒度清单
+- 文本差异预览
+- 同步方向建议
+- 恢复/回滚方案
+- 首次迁移专用向导
+
+## 7. 版本规划
+
+### Phase 1：基础同步内核
+
+目标：完成插件可运行、可配置、可同步、可观测
+
+状态：已基本完成
+
+包含：
+
+- GitHub / P2P 两种同步方式
+- Config/Auth/Workspace 三类基础同步项
+- 状态查看
+- 冲突扫描与处理
+
+### Phase 2：迁移目标对齐
+
+目标：对齐官方迁移文档的数据范围
+
+状态：未完成
+
+包含：
+
+- 增加 `Sessions`
+- 增加 `ChannelState`
+- 明确 `WorkspaceFiles` 范围
+- 建立同步项注册表
+
+### Phase 3：体验一致性验证
+
+目标：在切换机器前后给出可验证的健康结论
+
+状态：部分完成
+
+包含：
+
+- 本地基线检查
+- 同步副本基线检查
+- 迁移验证清单
+- 风险提示与建议动作
+
+### Phase 4：生产可用性增强
+
+目标：提升真实用户环境下的安全性、可恢复性与易用性
+
+包含：
+
+- 差异摘要
+- 回滚机制
+- 敏感状态保护
+- 多平台验证
+- 安装/升级/卸载验证
+
+## 8. 完成标准
+
+要判断本插件“已经满足需求”，至少需要同时满足以下条件：
+
+1. 支持官方迁移范围中的关键对象，而不是仅支持部分目录
+2. 新机器启动后，不需要重新进行主要 onboarding
+3. 能验证 Config/Auth/Sessions/ChannelState/WorkspaceFiles 的存在性与完整性
+4. 冲突出现时不丢数据，并且能给出安全处理路径
+5. 支持 GitHub 与 P2P 两种同步方式下的一致行为
+6. 完成跨机器、跨网络、首次迁移、增量同步、异常恢复测试
+
+## 9. 核心结论
+
+当前插件：
+
+- 作为同步插件原型，已经可用
+- 作为 Config/Auth/Workspace 的同步工具，已经具备实用价值
+- 作为“OpenClaw 迁移/跨机器体验一致性解决方案”，目前仍未完全达标
+
+当前最关键的缺口不是传输层，而是：
+
+- 同步对象范围不完整
+- 缺少迁移验证层
+- 缺少更细粒度的数据模型与风险控制
+
+后续设计与开发应优先围绕“迁移目标覆盖率”展开，而不是继续单纯扩展传输通道。
