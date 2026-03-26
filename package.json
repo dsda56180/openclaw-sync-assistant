@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "openclaw plugins install .",
     "build": "echo \"No build step required for this CommonJS plugin.\" && exit 0",
+    "release:github": "node scripts/release-github.js",
     "test": "node test.js",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,json,md}\"",
